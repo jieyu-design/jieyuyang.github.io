@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Teachable Machine</title>
+    <style>
+        body {
+            font-family: '微軟正黑體', sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            text-align: center;
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            margin: 20px;
+            background-color: #98d8bf;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #7ac5a6;
+        }
+        #webcam-container {
+            margin: 20px auto;
+        }
+        #label-container {
+            margin: 20px;
+            font-size: 18px;
+        }
+    </style>
+</head>
+<body>
+    <button type="button" onclick="init()">開始偵測</button>
+    <div id="webcam-container"></div>
+    <div id="label-container"></div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest/dist/tf.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@latest/dist/teachablemachine-image.min.js"></script>
+    <script type="text/javascript">
+        const URL = "https://teachablemachine.withgoogle.com/models/c3vmNgxIH/";
+        let model, webcam, labelContainer, maxPredictions;
+
+        async function init() {
+            const modelURL = URL + "model.json";
+            const metadataURL = URL + "metadata.json";
+
+            model = await tmImage.load(modelURL, metadataURL);
+            maxPredictions = model.getTotalClasses();
+
+            const flip = true;
+            webcam = new tmImage.Webcam(400, 400, flip);
+            await webcam.setup();
+            await webcam.play();
+            window.requestAnimationFrame(loop);
+
+            document.getElementById("webcam-container").appendChild(webcam.canvas);
+            labelContainer = document.getElementById("label-container");
+            for (let i = 0; i < maxPredictions; i++) {
+                labelContainer.appendChild(document.createElement("div"));
+            }
+        }
+
+        async function loop() {
+            webcam.update();
+            await predict();
+            window.requestAnimationFrame(loop);
+        }
+
+        let lastPrediction = "";
+        let lastAudioTime = 0;
+
+        async function predict() {
+            const prediction = await model.predict(webcam.canvas);
+            let highestProbability = 0;
+            let bestPrediction = "";
+
+            for (let i = 0; i < maxPredictions; i++) {
+                const probability = prediction[i].probability.toFixed(2);
+                const className = prediction[i].className;
+                labelContainer.childNodes[i].innerHTML = className + ": " + (probability * 100).toFixed(1) + "%";
+
+                if (prediction[i].probability > highestProbability) {
+                    highestProbability = prediction[i].probability;
+                    bestPrediction = className;
+                }
+            }
+
+            // 如果最高機率超過90%且與上次預測不同，且距離上次播放超過3秒
+            if (highestProbability > 0.9 && 
+                bestPrediction !== lastPrediction && 
+                (Date.now() - lastAudioTime) > 3000) {
+                
+                const audioFile = "audio/" + bestPrediction.toLowerCase().replace(" ", "_") + ".mp3";
+                try {
+                    const audio = new Audio(audioFile);
+                    audio.volume = 1.0;
+                    const playPromise = audio.play();
+                    if (playPromise !== undefined) {
+                        playPromise.then(_ => {
+                            console.log("Playing audio:", audioFile);
+                            lastPrediction = bestPrediction;
+                            lastAudioTime = Date.now();
+                        })
+                        .catch(error => {
+                            console.log("Audio playback failed:", error);
+                        });
+                    }
+                } catch (error) {
+                    console.log("Error playing audio:", error);
+                }
+            }
+        }
+    </script>
+</body>
+</html>
