@@ -2,27 +2,14 @@
 <html lang="zh-TW">
 <head>
   <meta charset="UTF-8" />
-  <title>🎧 EmoDJ點歌器 MOODTUBE</title>
+  <title>EmoDJ + 心理諮商師整合版</title>
   <style>
-    body {
-      font-family: sans-serif;
-      text-align: center;
-      padding-top: 20px;
-    }
-    video {
-      display: none;
-    }
-    canvas {
-      width: 360px;
-      height: 270px;
-      border: 1px solid #ccc;
-    }
-    #song-info {
-      margin-top: 20px;
-      font-size: 1.1rem;
-    }
+    body { font-family: sans-serif; text-align: center; background: #fffaf4; padding-top: 20px; }
+    video { display: none; }
+    canvas { width: 360px; height: 270px; border: 1px solid #ccc; }
+    #song-info { margin-top: 20px; font-size: 1.1rem; }
     button {
-      margin-top: 10px;
+      margin: 10px 5px;
       padding: 8px 16px;
       font-size: 1rem;
       border: none;
@@ -31,31 +18,62 @@
       color: white;
       cursor: pointer;
     }
-    button:hover {
-      background-color: #45a049;
+    #counsel-button {
+      background-color: #f48fb1;
+      display: none;
+    }
+    #chat-box {
+      display: none;
+      max-width: 480px;
+      margin: 20px auto;
+      background: #fef6e4;
+      padding: 16px;
+      border-radius: 10px;
+      border: 1px solid #ccc;
+    }
+    #chat-log {
+      height: 200px;
+      overflow-y: auto;
+      background: #fff;
+      padding: 10px;
+      font-size: 14px;
+      margin-bottom: 10px;
+      text-align: left;
+    }
+    input, #chat-btn {
+      padding: 8px;
+      font-size: 14px;
     }
   </style>
 </head>
 <body>
-  <h2>🎧 EmoDJ點歌器 MOODTUBE</h2>
-  <p>嘻嘻 = 歡樂歌單，不嘻嘻 = 抒情歌單</p>
-  <video id="input_video" autoplay muted playsinline></video>
-  <canvas id="output_canvas"></canvas>
-  <div id="song-info"></div>
-  <button id="change-song-btn">🎶 換一首</button>
 
-  <!-- Mediapipe + Camera -->
-  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
+<h2>🎧 EmoDJ點歌器 MOODTUBE</h2>
+<p>嘻嘻 = 歡樂歌單，不嘻嘻 = 抒情歌單</p>
+<video id="input_video" autoplay muted playsinline></video>
+<canvas id="output_canvas"></canvas>
+<div id="song-info"></div>
+<button id="change-song-btn">🎶 換一首</button>
+<button id="counsel-button" onclick="startCounseling()">🧠 與 AI 心理諮商師聊聊</button>
 
-  <script>
-    const videoElement = document.getElementById('input_video');
-    const canvasElement = document.getElementById('output_canvas');
-    const canvasCtx = canvasElement.getContext('2d');
-    const info = document.getElementById('song-info');
-    let currentMood = "";
+<div id="chat-box">
+  <div id="chat-log"></div>
+  <input type="text" id="chat-input" placeholder="輸入你的話..." />
+  <button id="chat-btn" onclick="sendChat()">送出</button>
+</div>
 
-    const delightSongs = [{ name: "Happy – Pharrell Williams", url: "https://www.youtube.com/watch?v=ZbZSe6N_BXs" },
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
+<script>
+  const videoElement = document.getElementById('input_video');
+  const canvasElement = document.getElementById('output_canvas');
+  const canvasCtx = canvasElement.getContext('2d');
+  const info = document.getElementById('song-info');
+  let currentMood = "";
+  let inFlow = false, flowStage = 0;
+  let usedQuotes = new Set(), usedComforts = new Set();
+
+  const delightSongs = [{ name: "Happy – Pharrell Williams", url: "https://www.youtube.com/watch?v=ZbZSe6N_BXs" },
       { name: "Can’t Stop The Feeling – Justin Timberlake", url: "https://www.youtube.com/watch?v=ru0K8uYEZWw" },
       { name: "Uptown Funk – Bruno Mars", url: "https://www.youtube.com/watch?v=OPf0YbXqDm0" },
       { name: "Shake It Off – Taylor Swift", url: "https://www.youtube.com/watch?v=nfWlot6h_JM" },
@@ -71,7 +89,7 @@
       { name: "Tough Luck – Laufey", url: "https://www.youtube.com/watch?v=9q71ywEqJjA" },
       { name: "One Thing – Lola Young", url: "https://www.youtube.com/watch?v=bV9SOv_Y61s" },
       { name: "Young – Little Simz", url: "https://www.youtube.com/watch?v=s07gWh37Xcc" }];
-    const sadnessSongs = [ { name: "Someone Like You – Adele", url: "https://www.youtube.com/watch?v=hLQl3WQQoQ0" },
+  const sadnessSongs = [ { name: "Someone Like You – Adele", url: "https://www.youtube.com/watch?v=hLQl3WQQoQ0" },
       { name: "Let Her Go – Passenger", url: "https://www.youtube.com/watch?v=RBumgq5yVrA" },
       { name: "All I Want – Kodaline", url: "https://www.youtube.com/watch?v=8hYtUYiuzkw" },
       { name: "Fix You – Coldplay", url: "https://www.youtube.com/watch?v=k4V3Mo61fJM" },
@@ -88,68 +106,112 @@
       { name: "When The Party's Over – Billie Eilish", url: "https://www.youtube.com/watch?v=pbMwTqkKSps" },
       { name: "Stay – Rihanna ft. Mikky Ekko", url: "https://www.youtube.com/watch?v=JF8BRvqGCNs" }];
 
-    function getRandomSong(list) {
-      const i = Math.floor(Math.random() * list.length);
-      return list[i];
-    }
+  const triggerKeywords = ["壓力好大", "焦慮", "失眠", "無助", "想哭", "煩躁", "煩", "空虛", "好累", "累了", "沒人懂","難過","不爽","生氣","沮喪"];
+  const comfortQuotes = [
+    "你已經很努力了，請不要責怪自己。",
+    "你值得被理解，也值得被溫柔以待。",
+    "情緒沒有對錯，它們只是想告訴你：你需要被照顧。",
+    "沒有人總是堅強，你有權利感到疲憊。",
+    "別急著好起來，慢慢來就好。"
+  ];
+  const softComforts = [
+    "慢慢來，沒關係，你的感受很重要。",
+    "你不是一個人，我在這裡聽你說。",
+    "能說出來就是一種勇氣。",
+    "我懂，這份痛苦不是你一個人扛的。",
+    "現在的你很棒，請不要太為難自己。"
+  ];
 
-    function showSong(emotion) {
-      let song;
-      if (emotion === "Delight") {
-        song = getRandomSong(delightSongs);
-      } else {
-        song = getRandomSong(sadnessSongs);
+  const faceMesh = new FaceMesh({ locateFile: file => `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}` });
+  faceMesh.setOptions({ maxNumFaces: 1, refineLandmarks: true, minDetectionConfidence: 0.5, minTrackingConfidence: 0.5 });
+
+  faceMesh.onResults(results => {
+    canvasElement.width = videoElement.videoWidth;
+    canvasElement.height = videoElement.videoHeight;
+    canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
+    canvasCtx.drawImage(results.image, 0, 0, canvasElement.width, canvasElement.height);
+    if (results.multiFaceLandmarks.length > 0) {
+      const lm = results.multiFaceLandmarks[0];
+      const mouthOpen = Math.abs(lm[13].y - lm[14].y);
+      const isSmiling = mouthOpen > 0.04;
+      const mood = isSmiling ? "Delight" : "Sadness";
+      if (mood !== currentMood) {
+        currentMood = mood;
+        showSong(mood);
+        document.getElementById("counsel-button").style.display = (mood === "Sadness") ? "inline-block" : "none";
       }
-      info.innerHTML = `🎵 <strong>推薦歌曲：</strong><br>${song.name}<br><a href="${song.url}" target="_blank">${song.url}</a>`;
     }
+  });
 
-    const faceMesh = new FaceMesh({
-      locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`
-    });
+  const camera = new Camera(videoElement, {
+    onFrame: async () => await faceMesh.send({ image: videoElement }),
+    width: 360,
+    height: 270
+  });
+  camera.start();
 
-    faceMesh.setOptions({
-      maxNumFaces: 1,
-      refineLandmarks: true,
-      minDetectionConfidence: 0.5,
-      minTrackingConfidence: 0.5
-    });
+  document.getElementById("change-song-btn").addEventListener("click", () => {
+    if (currentMood) showSong(currentMood);
+  });
 
-    faceMesh.onResults((results) => {
-      canvasElement.width = videoElement.videoWidth;
-      canvasElement.height = videoElement.videoHeight;
-      canvasCtx.save();
-      canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
-      canvasCtx.drawImage(results.image, 0, 0, canvasElement.width, canvasElement.height);
-      canvasCtx.restore();
+  function showSong(emotion) {
+  const list = (emotion === "Delight" ? delightSongs : sadnessSongs);
+  const song = list[Math.floor(Math.random() * list.length)];
+  info.innerHTML = `🎵 <strong>推薦歌曲：</strong><br>${song.name}<br><a href="${song.url}" target="_blank">${song.url}</a>`;
+}
 
-      if (results.multiFaceLandmarks && results.multiFaceLandmarks.length > 0) {
-        const lm = results.multiFaceLandmarks[0];
-        const mouthOpen = Math.abs(lm[13].y - lm[14].y);
-        const isSmiling = mouthOpen > 0.04;
-        const mood = isSmiling ? "Delight" : "Sadness";
+  function startCounseling() {
+    document.getElementById("chat-box").style.display = "block";
+    document.getElementById("chat-log").innerHTML = `<div><strong>EmoTalk：</strong>嗨，要不要說說你現在的心情？我很樂意傾聽喔 🙂</div>`;
+    inFlow = false;
+    flowStage = 0;
+    usedQuotes.clear();
+    usedComforts.clear();
+  }
 
-        if (mood !== currentMood) {
-          currentMood = mood;
-          showSong(mood);
+  function getRandomNonRepeat(list, usedSet) {
+    const available = list.filter(item => !usedSet.has(item));
+    if (available.length === 0) usedSet.clear();
+    const newAvailable = list.filter(item => !usedSet.has(item));
+    const item = newAvailable[Math.floor(Math.random() * newAvailable.length)];
+    usedSet.add(item);
+    return item;
+  }
+
+  function sendChat() {
+    const input = document.getElementById("chat-input");
+    const msg = input.value.trim();
+    if (!msg) return;
+    const log = document.getElementById("chat-log");
+    log.innerHTML += `<div><strong>你：</strong> ${msg}</div>`;
+    input.value = "";
+    setTimeout(() => {
+      let reply = "";
+      if (triggerKeywords.some(k => msg.includes(k))) {
+        inFlow = true;
+        flowStage = 0;
+      }
+      if (inFlow) {
+        if (flowStage === 0) {
+          reply = "這件事情聽起來就不好受，需要我給你一些建議嗎？（請輸入：好 / 不用了）";
+          flowStage++;
+        } else if (flowStage === 1) {
+          if (msg.includes("好")) {
+            reply = `💬「${getRandomNonRepeat(comfortQuotes, usedQuotes)}」<br><br>${getRandomNonRepeat(softComforts, usedComforts)}`;
+          } else {
+            reply = "沒關係，有需要歡迎隨時回來，對了！不妨聽首歌曲吧 🎵";
+          }
+          inFlow = false;
         }
+      } else {
+        reply = "我還在這裡，有什麼想說的都可以繼續告訴我。";
       }
-    });
+      log.innerHTML += `<div><strong>EmoTalk：</strong> ${reply}</div>`;
+      log.scrollTop = log.scrollHeight;
+    }, 500);
+  }
+</script>
 
-    const camera = new Camera(videoElement, {
-      onFrame: async () => await faceMesh.send({ image: videoElement }),
-      width: 360,
-      height: 270
-    });
-
-    camera.start();
-
-    // 按鈕功能：換一首歌
-    document.getElementById('change-song-btn').addEventListener('click', () => {
-      if (currentMood) {
-        showSong(currentMood);
-      }
-    });
-  </script>
 </body>
 </html>
 
