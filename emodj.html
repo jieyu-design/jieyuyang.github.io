@@ -9,7 +9,10 @@
       text-align: center;
       padding-top: 20px;
     }
-    video, canvas {
+    video {
+      display: none;
+    }
+    canvas {
       width: 360px;
       height: 270px;
       border: 1px solid #ccc;
@@ -23,7 +26,7 @@
 <body>
   <h2>🎧 EmoDJ點歌器 MOODTUBE</h2>
   <p>嘻嘻 = 歡樂歌單，不嘻嘻 = 抒情歌單</p>
- <video id="input_video" autoplay muted playsinline style="display: none;"></video>
+  <video id="input_video" autoplay muted playsinline></video>
   <canvas id="output_canvas"></canvas>
   <div id="song-info"></div>
 
@@ -75,6 +78,7 @@
       { name: "When The Party's Over – Billie Eilish", url: "https://www.youtube.com/watch?v=pbMwTqkKSps" },
       { name: "Stay – Rihanna ft. Mikky Ekko", url: "https://www.youtube.com/watch?v=JF8BRvqGCNs" }
     ];
+
     function getRandomSong(list) {
       const i = Math.floor(Math.random() * list.length);
       return list[i];
@@ -133,3 +137,4 @@
   </script>
 </body>
 </html>
+
