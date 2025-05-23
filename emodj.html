@@ -21,6 +21,19 @@
       margin-top: 20px;
       font-size: 1.1rem;
     }
+    button {
+      margin-top: 10px;
+      padding: 8px 16px;
+      font-size: 1rem;
+      border: none;
+      border-radius: 5px;
+      background-color: #4CAF50;
+      color: white;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #45a049;
+    }
   </style>
 </head>
 <body>
@@ -29,6 +42,7 @@
   <video id="input_video" autoplay muted playsinline></video>
   <canvas id="output_canvas"></canvas>
   <div id="song-info"></div>
+  <button id="change-song-btn">🎶 換一首</button>
 
   <!-- Mediapipe + Camera -->
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.min.js"></script>
@@ -41,8 +55,7 @@
     const info = document.getElementById('song-info');
     let currentMood = "";
 
-    const delightSongs = [
-      { name: "Happy – Pharrell Williams", url: "https://www.youtube.com/watch?v=ZbZSe6N_BXs" },
+    const delightSongs = [{ name: "Happy – Pharrell Williams", url: "https://www.youtube.com/watch?v=ZbZSe6N_BXs" },
       { name: "Can’t Stop The Feeling – Justin Timberlake", url: "https://www.youtube.com/watch?v=ru0K8uYEZWw" },
       { name: "Uptown Funk – Bruno Mars", url: "https://www.youtube.com/watch?v=OPf0YbXqDm0" },
       { name: "Shake It Off – Taylor Swift", url: "https://www.youtube.com/watch?v=nfWlot6h_JM" },
@@ -57,11 +70,8 @@
       { name: "BOY CRAZY – Kesha", url: "https://www.youtube.com/watch?v=sN6TMd9f7YE" },
       { name: "Tough Luck – Laufey", url: "https://www.youtube.com/watch?v=9q71ywEqJjA" },
       { name: "One Thing – Lola Young", url: "https://www.youtube.com/watch?v=bV9SOv_Y61s" },
-      { name: "Young – Little Simz", url: "https://www.youtube.com/watch?v=s07gWh37Xcc" }
-    ];
-
-    const sadnessSongs = [
-      { name: "Someone Like You – Adele", url: "https://www.youtube.com/watch?v=hLQl3WQQoQ0" },
+      { name: "Young – Little Simz", url: "https://www.youtube.com/watch?v=s07gWh37Xcc" }];
+    const sadnessSongs = [ { name: "Someone Like You – Adele", url: "https://www.youtube.com/watch?v=hLQl3WQQoQ0" },
       { name: "Let Her Go – Passenger", url: "https://www.youtube.com/watch?v=RBumgq5yVrA" },
       { name: "All I Want – Kodaline", url: "https://www.youtube.com/watch?v=8hYtUYiuzkw" },
       { name: "Fix You – Coldplay", url: "https://www.youtube.com/watch?v=k4V3Mo61fJM" },
@@ -76,8 +86,7 @@
       { name: "Lovely – Billie Eilish & Khalid", url: "https://www.youtube.com/watch?v=V1Pl8CzNzCw" },
       { name: "Jealous – Labrinth", url: "https://www.youtube.com/watch?v=0Nw_gc0R6xo" },
       { name: "When The Party's Over – Billie Eilish", url: "https://www.youtube.com/watch?v=pbMwTqkKSps" },
-      { name: "Stay – Rihanna ft. Mikky Ekko", url: "https://www.youtube.com/watch?v=JF8BRvqGCNs" }
-    ];
+      { name: "Stay – Rihanna ft. Mikky Ekko", url: "https://www.youtube.com/watch?v=JF8BRvqGCNs" }];
 
     function getRandomSong(list) {
       const i = Math.floor(Math.random() * list.length);
@@ -91,7 +100,6 @@
       } else {
         song = getRandomSong(sadnessSongs);
       }
-
       info.innerHTML = `🎵 <strong>推薦歌曲：</strong><br>${song.name}<br><a href="${song.url}" target="_blank">${song.url}</a>`;
     }
 
@@ -134,7 +142,15 @@
     });
 
     camera.start();
+
+    // 按鈕功能：換一首歌
+    document.getElementById('change-song-btn').addEventListener('click', () => {
+      if (currentMood) {
+        showSong(currentMood);
+      }
+    });
   </script>
 </body>
 </html>
+
 
